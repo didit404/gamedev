@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrono Nusa - Final Boss Battle</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lato:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            font-family: 'Lato', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 1000px;
+            aspect-ratio: 16/9;
+            /* Menggunakan gambar milikmu sebagai background */
+            background-image: url('image_39ad83.png');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            border: 2px solid #1a252f;
+            overflow: hidden;
+        }
+
+        /* UI Bagian Atas (Boss) mengikuti desain gambar */
+        #top-ui {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            z-index: 5;
+        }
+
+        .boss-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px #000;
+            margin-bottom: 5px;
+        }
+
+        .boss-hp-container {
+            width: 60%;
+            height: 18px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #c79a3b;
+            position: relative;
+        }
+
+        #boss-hp-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            transition: width 0.5s ease-out;
+        }
+
+        .boss-motto {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            margin-top: 5px;
+            font-style: italic;
+            text-shadow: 1px 1px 3px #000;
+        }
+
+        /* UI Pemain (Bawah Kiri) */
+        #player-ui {
+            position: absolute;
+            bottom: 220px;
+            left: 20px;
+            width: 250px;
+            z-index: 5;
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #c79a3b;
+        }
+
+        .player-hp-container {
+            width: 100%;
+            height: 15px;
+            background: #333;
+            border: 1px solid #fff;
+            margin-top: 5px;
+        }
+
+        #player-hp-fill {
+            height: 100%;
+            width: 100%;
+            background: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        /* Panel Kuis (Bawah) */
+        #quiz-panel {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: rgba(10, 20, 35, 0.9);
+            border-top: 3px solid #c79a3b;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #timer {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f1c40f;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+        }
+
+        #question-text {
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 15px;
+            width: 90%;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 90%;
+        }
+
+        .option-btn {
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: #fff;
+            border: 1px solid #c79a3b;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .option-btn:hover {
+            background: linear-gradient(to right, #c79a3b, #f1c40f);
+            color: #000;
+            transform: scale(1.02);
+        }
+
+        /* EFEK ANIMASI SERANGAN */
+        #attack-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slash-effect {
+            position: absolute;
+            width: 0;
+            height: 10px;
+            background: #fff;
+            box-shadow: 0 0 20px 10px #00f3ff;
+            transform: rotate(-45deg);
+            animation: slashAnim 0.4s ease-out forwards;
+        }
+
+        @keyframes slashAnim {
+            0% { width: 0; opacity: 1; }
+            50% { width: 500px; opacity: 1; }
+            100% { width: 600px; opacity: 0; }
+        }
+
+        .ultimate-effect {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,215,0,1) 0%, rgba(255,140,0,0.8) 50%, rgba(0,0,0,0) 100%);
+            animation: ultimateAnim 2s ease-in-out forwards;
+            mix-blend-mode: screen;
+        }
+
+        @keyframes ultimateAnim {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .shake { animation: shakeAnim 0.5s; }
+        @keyframes shakeAnim {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-10px, 5px); }
+            40% { transform: translate(10px, -5px); }
+            60% { transform: translate(-10px, -5px); }
+            80% { transform: translate(10px, 5px); }
+        }
+
+        .red-flash {
+            animation: redFlashAnim 0.5s;
+        }
+        @keyframes redFlashAnim {
+            0% { box-shadow: inset 0 0 0 0px red; }
+            50% { box-shadow: inset 0 0 100px 50px red; }
+            100% { box-shadow: inset 0 0 0 0px red; }
+        }
+
+        /* Layar Awal/Akhir */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .action-btn {
+            background: #c79a3b; border: none; padding: 15px 30px; font-size: 1.2rem; cursor: pointer; border-radius: 5px; margin-top: 20px; font-weight: bold;
+        }
+        .action-btn:hover { background: #f1c40f; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        
+        <!-- UI Boss -->
+        <div id="top-ui">
+            <div class="boss-title">SANG PENCURI WAKTU: KALA CORRUPTUS</div>
+            <div class="boss-hp-container">
+                <div id="boss-hp-fill"></div>
+            </div>
+            <div class="boss-motto">"Menjaga waktu, merawat ingatan bangsa"</div>
+        </div>
+
+        <!-- Layer untuk efek animasi serangan -->
+        <div id="attack-layer"></div>
+
+        <!-- UI Player -->
+        <div id="player-ui">
+            <div>Pahlawan Waktu (Kamu)</div>
+            <div class="player-hp-container">
+                <div id="player-hp-fill"></div>
+            </div>
+        </div>
+
+        <!-- UI Quiz & Timer -->
+        <div id="quiz-panel">
+            <div id="timer">10</div>
+            <div id="question-text">Memuat pertanyaan...</div>
+            <div class="options-grid" id="options-container"></div>
+        </div>
+
+        <!-- Overlay Menu -->
+        <div id="overlay">
+            <h1 style="font-family: 'Cinzel'; color: #c79a3b;">BATTLE START</h1>
+            <p>Jawab dalam 10 detik! Serang Kala Corruptus dengan ingatan bangsamu!</p>
+            <button class="action-btn" onclick="startGame()">Lawan Sekarang</button>
+        </div>
+
+    </div>
+
+    <script>
+        const questions = [
+            { q: "Kerajaan maritim Buddha terbesar di Nusantara yang pernah menguasai Selat Malaka adalah...", options: ["Tarumanegara", "Sriwijaya", "Majapahit", "Singasari"], answer: 1 },
+            { q: "Siapakah pahlawan wanita asal Aceh yang gigih melawan penjajah Belanda dengan taktik gerilya?", options: ["R.A. Kartini", "Cut Nyak Dien", "Martha Christina Tiahahu", "Dewi Sartika"], answer: 1 },
+            { q: "Peristiwa Rengasdengklok terjadi karena adanya perbedaan pendapat antara golongan tua dan muda mengenai...", options: ["Tempat Proklamasi", "Waktu Proklamasi", "Tokoh Proklamator", "Teks Proklamasi"], answer: 1 },
+            { q: "Konferensi Meja Bundar (KMB) tahun 1949 menghasilkan keputusan penting, yaitu...", options: ["Belanda menyerah kepada Jepang", "Pengakuan kedaulatan Indonesia oleh Belanda", "Terbentuknya Republik Indonesia Serikat", "Jawaban B dan C benar"], answer: 3 },
+            { q: "AWAS! KALA CORRUPTUS MELEMAH! Pertanyaan Terakhir:\nDasar negara Indonesia yang dirumuskan pada sidang BPUPKI tanggal 1 Juni 1945 adalah...", options: ["UUD 1945", "Piagam Jakarta", "Pancasila", "Bhinneka Tunggal Ika"], answer: 2 }
+        ];
+
+        let currentQuestion = 0;
+        let playerHP = 100;
+        let bossHP = 100;
+        let timeLeft = 10;
+        let timerInterval;
+        let isAnimating = false; // Mencegah klik saat animasi jalan
+
+        const bossHpFill = document.getElementById('boss-hp-fill');
+        const playerHpFill = document.getElementById('player-hp-fill');
+        const timerDisplay = document.getElementById('timer');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const overlay = document.getElementById('overlay');
+        const attackLayer = document.getElementById('attack-layer');
+        const gameContainer = document.getElementById('game-container');
+
+        function startGame() {
+            playerHP = 100; bossHP = 100; currentQuestion = 0;
+            updateHP();
+            overlay.style.display = 'none';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if(currentQuestion >= questions.length) currentQuestion = 0;
+            
+            isAnimating = false;
+            const q = questions[currentQuestion];
+            questionText.innerText = q.q;
+            optionsContainer.innerHTML = '';
+
+            // Efek teks merah jika ini pertanyaan ultimate
+            if(currentQuestion === questions.length - 1) {
+                questionText.style.color = "#ff4b2b";
+                questionText.style.fontWeight = "bold";
+            } else {
+                questionText.style.color = "#fff";
+            }
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index);
+                optionsContainer.appendChild(btn);
+            });
+
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 10;
+            timerDisplay.innerText = timeLeft;
+            timerDisplay.style.color = "#f1c40f";
+
+            timerInterval = setInterval(() => {
+                if(isAnimating) return; // Hentikan waktu jika sedang animasi serangan
+                timeLeft--;
+                timerDisplay.innerText = timeLeft;
+                if(timeLeft <= 3) timerDisplay.style.color = "#e74c3c"; // Merah saat kritis
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    triggerBossAttack("Waktu Habis!");
+                }
+            }, 1000);
+        }
+
+        function checkAnswer(selectedIndex) {
+            if(isAnimating) return;
+            clearInterval(timerInterval);
+            isAnimating = true; // Kunci tombol
+
+            if (selectedIndex === questions[currentQuestion].answer) {
+                const isUltimate = (currentQuestion === questions.length - 1);
+                triggerPlayerAttack(isUltimate);
+            } else {
+                triggerBossAttack("Jawaban Salah!");
+            }
+        }
+
+        // ANIMASI PLAYER MENYERANG BOS
+        function triggerPlayerAttack(isUltimate) {
+            if(isUltimate) {
+                // ULTIMATE ATTACK
+                const ulti = document.createElement('div');
+                ulti.className = 'ultimate-effect';
+                attackLayer.appendChild(ulti);
+                
+                // Layar bergetar keras
+                gameContainer.style.animation = "shakeAnim 0.1s infinite";
+                
+                setTimeout(() => {
+                    attackLayer.innerHTML = '';
+                    gameContainer.style.animation = "";
+                    bossHP = 0; 
+                    updateHP();
+                    endGame(true);
+                }, 2000); // Tunggu animasi ultimate selesai
+            } else {
+                // NORMAL ATTACK (Tebasan)
+                const slash = document.createElement('div');
+                slash.className = 'slash-effect';
+                attackLayer.appendChild(slash);
+
+                // Sedikit getar pada bos
+                gameContainer.classList.add('shake');
+
+                setTimeout(() => {
+                    attackLayer.innerHTML = '';
+                    gameContainer.classList.remove('shake');
+                    bossHP -= 25; // 4x serang mati (serangan kelima ultimate)
+                    updateHP();
+                    
+                    currentQuestion++;
+                    loadQuestion();
+                }, 600);
+            }
+        }
+
+        // ANIMASI BOS MENYERANG PLAYER
+        function triggerBossAttack(reason) {
+            gameContainer.classList.add('shake', 'red-flash');
+            
+            setTimeout(() => {
+                gameContainer.classList.remove('shake', 'red-flash');
+                playerHP -= 34; // 3x salah mati
+                if(playerHP < 0) playerHP = 0;
+                updateHP();
+
+                if(playerHP === 0) {
+                    endGame(false, reason);
+                } else {
+                    currentQuestion++;
+                    loadQuestion();
+                }
+            }, 600);
+        }
+
+        function updateHP() {
+            bossHpFill.style.width = bossHP + "%";
+            playerHpFill.style.width = playerHP + "%";
+        }
+
+        function endGame(isWin, reason = "") {
+            overlay.style.display = 'flex';
+            const title = overlay.querySelector('h1');
+            const desc = overlay.querySelector('p');
+            const btn = overlay.querySelector('button');
+
+            if(isWin) {
+                title.innerText = "CHRONO NUSA BERHASIL DISELAMATKAN!";
+                title.style.color = "#2ecc71";
+                desc.innerText = "Ultimate attack-mu berhasil menghancurkan Kala Corruptus!";
+                btn.innerText = "Selesai";
+                btn.onclick = () => location.reload();
+            } else {
+                title.innerText = "INGATAN TERHAPUS...";
+                title.style.color = "#e74c3c";
+                desc.innerText = reason;
+                btn.innerText = "Coba Lagi";
+                btn.onclick = startGame;
+            }
+        }
+    </script>
+</body>
+</html>

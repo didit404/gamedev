@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrono Nusa - Retro Boss Battle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 3/2; /* Mengikuti rasio layar game retro/GBA */
+            background-image: url('image_022ca2.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            image-rendering: pixelated;
+            box-shadow: 0 0 0 4px #000, 0 0 20px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        /* OVERLAY HP BOS (Menutupi kotak Groudon di kiri atas) */
+        #boss-hp-box {
+            position: absolute;
+            top: 10%;
+            left: 5%;
+            width: 40%;
+            background: #f8f8f8;
+            border: 3px solid #555;
+            border-radius: 5px;
+            padding: 10px;
+            box-sizing: border-box;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+            z-index: 5;
+        }
+
+        .name-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .hp-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #555;
+            border-radius: 4px;
+            border: 2px solid #333;
+            overflow: hidden;
+        }
+
+        .hp-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: #2ecc71; /* Hijau, akan berubah merah jika kritis */
+            transition: width 0.3s steps(10);
+        }
+
+        /* OVERLAY HP PLAYER (Di kanan bawah, di atas kotak dialog) */
+        #player-hp-box {
+            position: absolute;
+            bottom: 35%;
+            right: 5%;
+            width: 35%;
+            background: #f8f8f8;
+            border: 3px solid #555;
+            border-radius: 5px;
+            padding: 10px;
+            box-sizing: border-box;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+            z-index: 5;
+        }
+
+        /* KOTAK DIALOG / KUIS (Menutupi bagian abu-abu di bawah) */
+        #dialog-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30%; /* Menutupi area bawah */
+            background: #608c90; /* Warna retro dialog */
+            border-top: 4px solid #d45b59; /* Garis merah mengikuti desain asli */
+            border-bottom: 4px solid #d45b59;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        /* KOTAK PUTIH DALAM DIALOG */
+        #dialog-inner {
+            background: #f8f8f8;
+            width: 100%;
+            height: 100%;
+            border: 3px solid #4a686b;
+            border-radius: 5px;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        #question-text {
+            font-size: 0.65rem;
+            line-height: 1.5;
+            width: 85%;
+        }
+
+        #timer {
+            font-size: 0.8rem;
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+        /* TOMBOL PILIHAN */
+        #options-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .option-btn {
+            background: #fff;
+            border: 2px solid #aaa;
+            border-radius: 3px;
+            padding: 8px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.55rem;
+            cursor: pointer;
+            text-align: left;
+            position: relative;
+        }
+
+        .option-btn:hover {
+            border-color: #333;
+        }
+        
+        .option-btn:hover::before {
+            content: '▶';
+            position: absolute;
+            left: -2px;
+            top: 6px;
+            font-size: 0.6rem;
+        }
+
+        /* EFEK ANIMASI SERANGAN */
+        #effects-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 8;
+        }
+
+        /* Serangan Normal (Tebasan di area monster) */
+        .slash {
+            position: absolute;
+            top: 20%;
+            right: 15%;
+            width: 150px;
+            height: 10px;
+            background: #fff;
+            transform: rotate(-45deg);
+            opacity: 0;
+            box-shadow: 0 0 10px #fff;
+        }
+
+        .slash-active { animation: slashAnim 0.3s steps(3); }
+        @keyframes slashAnim {
+            0% { opacity: 1; transform: rotate(-45deg) scale(0.5); }
+            50% { opacity: 1; transform: rotate(-45deg) scale(1.2); }
+            100% { opacity: 0; transform: rotate(-45deg) scale(1.5); }
+        }
+
+        /* Ultimate Attack (Sinar besar menutupi monster) */
+        .ultimate {
+            position: absolute;
+            bottom: 30%; /* Berawal dari player */
+            left: 30%;
+            width: 100px;
+            height: 0px;
+            background: linear-gradient(90deg, #fff, #ffea00, #fff);
+            box-shadow: 0 0 20px #ffea00;
+            transform-origin: bottom center;
+            transform: rotate(45deg);
+            opacity: 0;
+        }
+
+        .ultimate-active { animation: ultiAnim 2s steps(8); }
+        @keyframes ultiAnim {
+            0% { height: 0; opacity: 1; }
+            20% { height: 500px; opacity: 1; width: 150px; }
+            80% { height: 500px; opacity: 1; width: 200px; }
+            100% { height: 500px; opacity: 0; width: 0; }
+        }
+
+        /* Animasi Kena Hit (Layar kedip merah) */
+        .damage-flash { animation: damageAnim 0.3s steps(2); }
+        @keyframes damageAnim {
+            0% { box-shadow: inset 0 0 100px red; }
+            100% { box-shadow: none; }
+        }
+        
+        /* Layar Bergetar */
+        .shake { animation: shakeAnim 0.3s steps(4) infinite; }
+        @keyframes shakeAnim {
+            0% { transform: translate(3px, 3px); }
+            50% { transform: translate(-3px, -3px); }
+            100% { transform: translate(3px, -3px); }
+        }
+
+        /* OVERLAY MULAI / SELESAI */
+        #overlay-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            text-align: center;
+        }
+
+        #overlay-screen h1 { font-size: 1.2rem; color: #ffea00; margin-bottom: 20px; line-height: 1.5; }
+        #overlay-screen p { font-size: 0.6rem; width: 80%; line-height: 2; margin-bottom: 30px; }
+        
+        .start-btn {
+            background: #fff; border: 3px solid #333; padding: 15px 30px;
+            font-family: 'Press Start 2P', cursive; font-size: 0.7rem;
+            cursor: pointer; border-radius: 5px;
+        }
+        .start-btn:hover { background: #eee; }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        
+        <!-- UI Darah Kala Corruptus (Monster Merah) -->
+        <div id="boss-hp-box">
+            <div class="name-row">
+                <span>K. CORRUPTUS</span>
+                <span>Lv:99</span>
+            </div>
+            <div class="hp-bar-bg">
+                <div class="hp-bar-fill" id="boss-hp-fill"></div>
+            </div>
+        </div>
+
+        <!-- UI Darah Player (Rambut Putih) -->
+        <div id="player-hp-box">
+            <div class="name-row">
+                <span>PAHLAWAN</span>
+                <span id="player-hp-text">100/100</span>
+            </div>
+            <div class="hp-bar-bg">
+                <div class="hp-bar-fill" id="player-hp-fill"></div>
+            </div>
+        </div>
+
+        <!-- Efek Serangan -->
+        <div id="effects-layer">
+            <div class="slash" id="slash-fx"></div>
+            <div class="ultimate" id="ulti-fx"></div>
+        </div>
+
+        <!-- Kotak Dialog Bawah (Kuis) -->
+        <div id="dialog-box">
+            <div id="dialog-inner">
+                <div id="header-row">
+                    <div id="question-text">Wild K. CORRUPTUS appeared! Memuat soal...</div>
+                    <div id="timer">10</div>
+                </div>
+                <div id="options-container">
+                    <!-- Tombol pilihan akan dimuat dari JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Layar Start / Akhir -->
+        <div id="overlay-screen">
+            <h1 id="overlay-title">A WILD KALA CORRUPTUS APPEARED!</h1>
+            <p id="overlay-desc">Gunakan ingatan sejarahmu untuk menyerang! Jawab soal dalam 10 detik.</p>
+            <button class="start-btn" id="start-btn" onclick="startGame()">BATTLE!</button>
+        </div>
+
+    </div>
+
+    <script>
+        const questions = [
+            { q: "Kerajaan maritim Buddha terbesar di Nusantara yang pernah menguasai Selat Malaka adalah...", options: ["Tarumanegara", "Sriwijaya", "Majapahit", "Singasari"], answer: 1 },
+            { q: "Siapakah pahlawan wanita asal Aceh yang gigih melawan penjajah Belanda dengan taktik gerilya?", options: ["R.A. Kartini", "Cut Nyak Dien", "M. Christina", "Dewi Sartika"], answer: 1 },
+            { q: "Peristiwa Rengasdengklok terjadi karena perbedaan pendapat mengenai...", options: ["Tempat Proklamasi", "Waktu Proklamasi", "Tokoh Proklamasi", "Teks Proklamasi"], answer: 1 },
+            { q: "Konferensi Meja Bundar (KMB) tahun 1949 di Den Haag menghasilkan...", options: ["Penyerahan Jepang", "Pengakuan Kedaulatan", "Berdirinya ASEAN", "Perjanjian Renville"], answer: 1 },
+            { q: "ULTIMATE READY! Dasar negara Indonesia yang dirumuskan pada 1 Juni 1945 adalah...", options: ["UUD 1945", "Piagam Jakarta", "Pancasila", "Bhinneka Tunggal"], answer: 2 }
+        ];
+
+        let currentQuestion = 0;
+        let playerHP = 100;
+        let bossHP = 100;
+        let timeLeft = 10;
+        let timerInterval;
+        let isAnimating = false;
+
+        const bossHpFill = document.getElementById('boss-hp-fill');
+        const playerHpFill = document.getElementById('player-hp-fill');
+        const playerHpText = document.getElementById('player-hp-text');
+        
+        const timerDisplay = document.getElementById('timer');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        
+        const slashFx = document.getElementById('slash-fx');
+        const ultiFx = document.getElementById('ulti-fx');
+        const gameWrapper = document.getElementById('game-wrapper');
+        const overlayScreen = document.getElementById('overlay-screen');
+
+        function updateColors() {
+            // Ubah warna bar jika darah kritis (di bawah 40%)
+            bossHpFill.style.background = bossHP <= 40 ? "#e74c3c" : "#f1c40f"; // Kuning/Merah
+            playerHpFill.style.background = playerHP <= 40 ? "#e74c3c" : "#2ecc71"; // Hijau/Merah
+        }
+
+        function startGame() {
+            playerHP = 100; bossHP = 100; currentQuestion = 0;
+            updateHP();
+            overlayScreen.style.display = 'none';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isAnimating = false;
+            const q = questions[currentQuestion];
+            
+            // Teks merah dan bergetar di soal terakhir
+            if(currentQuestion === questions.length - 1) {
+                questionText.style.color = "#d32f2f";
+            } else {
+                questionText.style.color = "#333";
+            }
+
+            questionText.innerText = q.q;
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index);
+                optionsContainer.appendChild(btn);
+            });
+
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 10;
+            timerDisplay.innerText = timeLeft;
+
+            timerInterval = setInterval(() => {
+                if(isAnimating) return;
+                timeLeft--;
+                timerDisplay.innerText = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    triggerBossAttack("Waktu Habis!");
+                }
+            }, 1000);
+        }
+
+        function checkAnswer(selectedIndex) {
+            if(isAnimating) return;
+            clearInterval(timerInterval);
+            isAnimating = true;
+
+            if (selectedIndex === questions[currentQuestion].answer) {
+                const isUltimate = (currentQuestion === questions.length - 1);
+                triggerPlayerAttack(isUltimate);
+            } else {
+                triggerBossAttack("Jawaban Salah!");
+            }
+        }
+
+        // PLAYER MENYERANG (Karakter Rambut Putih Menyerang Monster Merah)
+        function triggerPlayerAttack(isUltimate) {
+            if(isUltimate) {
+                // ULTIMATE
+                ultiFx.classList.add('ultimate-active');
+                setTimeout(() => gameWrapper.classList.add('shake', 'damage-flash'), 400);
+                
+                setTimeout(() => {
+                    ultiFx.classList.remove('ultimate-active');
+                    gameWrapper.classList.remove('shake', 'damage-flash');
+                    bossHP = 0;
+                    updateHP();
+                    endGame(true);
+                }, 2000);
+            } else {
+                // NORMAL ATTACK
+                slashFx.classList.add('slash-active');
+                
+                setTimeout(() => {
+                    slashFx.classList.remove('slash-active');
+                    bossHP -= 25; 
+                    updateHP();
+                    
+                    setTimeout(() => {
+                        currentQuestion++;
+                        loadQuestion();
+                    }, 500);
+                }, 300);
+            }
+        }
+
+        // BOS MENYERANG PLAYER
+        function triggerBossAttack(reason) {
+            gameWrapper.classList.add('shake', 'damage-flash');
+            
+            setTimeout(() => {
+                gameWrapper.classList.remove('shake', 'damage-flash');
+                playerHP -= 34; // 3x salah = kalah
+                if(playerHP < 0) playerHP = 0;
+                updateHP();
+
+                if(playerHP === 0) {
+                    setTimeout(() => endGame(false, reason), 500);
+                } else {
+                    setTimeout(() => {
+                        currentQuestion++;
+                        loadQuestion();
+                    }, 500);
+                }
+            }, 300);
+        }
+
+        function updateHP() {
+            bossHpFill.style.width = bossHP + "%";
+            playerHpFill.style.width = playerHP + "%";
+            playerHpText.innerText = playerHP + "/100";
+            updateColors();
+        }
+
+        function endGame(isWin, reason = "") {
+            overlayScreen.style.display = 'flex';
+            const title = document.getElementById('overlay-title');
+            const desc = document.getElementById('overlay-desc');
+            const btn = document.getElementById('start-btn');
+
+            if(isWin) {
+                title.innerText = "KALA CORRUPTUS FAINTED!";
+                title.style.color = "#2ecc71";
+                desc.innerText = "Kamu berhasil mengalahkan bos dan menyelamatkan sejarah!";
+                btn.innerText = "KEMBALI";
+                btn.onclick = () => location.reload();
+            } else {
+                title.innerText = "PAHLAWAN BLACKED OUT!";
+                title.style.color = "#e74c3c";
+                desc.innerText = reason + " Ingatan sejarahmu telah terhapus...";
+                btn.innerText = "RETRY";
+                btn.onclick = startGame;
+            }
+        }
+    </script>
+</body>
+</html>
